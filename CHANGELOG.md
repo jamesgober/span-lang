@@ -21,6 +21,22 @@
 
 ---
 
+## [0.3.0] - 2026-06-19
+
+Verification and source-coordinate mapping. The `O(log lines)` lookup is now proven by a benchmark that scales line count across three orders of magnitude, and the empty-source, no-trailing-newline, and CRLF edges have dedicated coverage.
+
+### Added
+
+- `LineIndex::line_span` &mdash; the byte `Span` of a 1-based line's text, with the `\n` (and a preceding `\r` for `\r\n`) trimmed, so the span slices the source to exactly the line a diagnostic would underline. `O(log lines)`, allocation-free.
+- `line_col_scaling` benchmark resolving at a fixed relative position across sources of 100, 1 000, 10 000, and 100 000 lines, demonstrating logarithmic lookup growth.
+- Edge-case tests for a lone `\r` (an ordinary character, not a break), consecutive newlines, a single newline, and `line_span` over LF, CRLF, and unterminated final lines; plus a property test that line spans tile the source in order and never contain a terminator.
+
+### Changed
+
+- Documented that a lone `\r` not followed by `\n` is an ordinary character rather than a line break, matching how language front-ends split source.
+
+---
+
 ## [0.2.0] - 2026-06-18
 
 The correctness foundation: the position and span types, and the UTF-8-correct line/column resolver with its `O(log lines)` line index. Every public item carries rustdoc with a runnable example, and the section-4 invariants are property-tested against a naive reference resolver.
@@ -55,6 +71,7 @@ Initial scaffold and repository bootstrap. No domain logic yet &mdash; this rele
 - Align the `clippy.toml` MSRV with `Cargo.toml` (`1.87` &rarr; `1.85`); the stale value overrode the manifest and emitted a clippy MSRV-mismatch warning.
 - Correct the `deny.toml` header comment to name `span-lang` rather than the crate it was templated from.
 
-[Unreleased]: https://github.com/jamesgober/span-lang/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jamesgober/span-lang/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/jamesgober/span-lang/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jamesgober/span-lang/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jamesgober/span-lang/releases/tag/v0.1.0

@@ -26,7 +26,7 @@
         <strong>MSRV is 1.85+</strong> (Rust 2024 edition).
     </p>
     <blockquote>
-        <strong>Status: pre-1.0, in active development.</strong> The core position, span, and resolution types are implemented and property-tested as of <code>v0.2.0</code>. The public API is additive across the 0.x series and frozen at <code>1.0.0</code>. See <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
+        <strong>Status: pre-1.0, in active development.</strong> The core position, span, and resolution types are implemented and property-tested as of <code>v0.3.0</code>, with the <code>O(log lines)</code> lookup verified by benchmark scaling. The public API is additive across the 0.x series and frozen at <code>1.0.0</code>. See <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
     </blockquote>
 </div>
 
@@ -37,13 +37,13 @@
 
 ```toml
 [dependencies]
-span-lang = "0.2"
+span-lang = "0.3"
 ```
 
 `no_std` targets disable the default `std` feature; the crate then relies only on `core` and `alloc`:
 
 ```toml
-span-lang = { version = "0.2", default-features = false }
+span-lang = { version = "0.3", default-features = false }
 ```
 
 <br>
@@ -103,7 +103,7 @@ For a complete reference with examples, see [`docs/API.md`](./docs/API.md).
 - [`BytePos`](./docs/API.md#bytepos) — a byte offset into one source.
 - [`Span`](./docs/API.md#span) — a half-open byte range with `merge`, `contains`, and ordering.
 - [`LineCol`](./docs/API.md#linecol) — a resolved 1-based line/column coordinate.
-- [`LineIndex`](./docs/API.md#lineindex) — byte &harr; line/column resolution in `O(log lines)`.
+- [`LineIndex`](./docs/API.md#lineindex) — byte &harr; line/column resolution in `O(log lines)`, plus per-line text spans.
 
 <hr>
 <br>

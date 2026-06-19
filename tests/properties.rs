@@ -99,6 +99,24 @@ proptest! {
         prop_assert_eq!(a.merge(b).merge(c), a.merge(b.merge(c)));
     }
 
+    /// Every line's span starts at its first column, contains no `\n`, and the
+    /// spans tile the source in order.
+    #[test]
+    fn prop_line_span_is_consistent(src in source_strategy()) {
+        let index = LineIndex::new(&src);
+        let mut previous_end = 0u32;
+        for line in 1..=index.line_count() as u32 {
+            let span = index.line_span(line).expect("line in range");
+            prop_assert_eq!(Some(span.start()), index.offset(LineCol::new(line, 1)));
+            let text = &src[span.start().to_usize()..span.end().to_usize()];
+            prop_assert!(!text.contains('\n'));
+            prop_assert!(span.start().to_u32() >= previous_end);
+            previous_end = span.end().to_u32();
+        }
+        prop_assert_eq!(index.line_span(0), None);
+        prop_assert_eq!(index.line_span(index.line_count() as u32 + 1), None);
+    }
+
     /// `merge` returns exactly the smallest range covering both inputs.
     #[test]
     fn prop_merge_covers_both_exactly(v in any::<[u32; 4]>()) {

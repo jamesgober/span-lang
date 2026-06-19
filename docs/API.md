@@ -18,7 +18,7 @@
 
 > Complete reference for every public item in `span-lang`, with examples.
 >
-> **Status: pre-1.0.** The surface documented here is implemented and tested as of `v0.2.0`. It is additive across the 0.x series and frozen at `1.0.0`; see [`dev/ROADMAP.md`](../dev/ROADMAP.md).
+> **Status: pre-1.0.** The surface documented here is implemented and tested as of `v0.3.0`. It is additive across the 0.x series and frozen at `1.0.0`; see [`dev/ROADMAP.md`](../dev/ROADMAP.md).
 
 ## Table of Contents
 
@@ -63,7 +63,7 @@ inheriting I/O or formatting.
 
 ```toml
 [dependencies]
-span-lang = "0.2"
+span-lang = "0.3"
 ```
 
 Or from the terminal:
@@ -77,7 +77,7 @@ default `std` feature is additive; disable it for a `no_std` target:
 
 ```toml
 [dependencies]
-span-lang = { version = "0.2", default-features = false }
+span-lang = { version = "0.3", default-features = false }
 ```
 
 <hr>
@@ -390,7 +390,8 @@ positions and does not load text.
 **Line endings.** A line begins immediately after each `\n`. A `\r\n` sequence is
 one line break — the `\r` is the last character of the preceding line. A source
 with no trailing newline ends with an unterminated final line, and the empty
-string is one empty line.
+string is one empty line. A lone `\r` not followed by `\n` is an ordinary
+character, not a line break.
 
 Derives: `Debug`, `Clone`.
 
@@ -495,6 +496,42 @@ assert_eq!(index.offset(LineCol::new(1, 99)), None);
 // Forward then inverse round-trips.
 let pos = BytePos::new(7);
 assert_eq!(index.offset(index.line_col(pos)), Some(pos));
+```
+
+### `LineIndex::line_span`
+
+```rust,ignore
+pub fn line_span(&self, line: u32) -> Option<Span>
+```
+
+Returns the byte [`Span`](#span) of a 1-based line's text, excluding its
+terminator. The trailing `\n` — and a `\r` immediately before it, for a `\r\n`
+ending — is not included, so `&src[start..end]` is exactly the text a diagnostic
+would underline. Returns `None` if `line` is `0` or past the last line.
+
+The line's start is found in `O(log lines)`; trimming the terminator inspects at
+most two bytes, so the lookup is allocation-free.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `line` | `u32` | The 1-based line number. |
+
+```rust
+use span_lang::LineIndex;
+
+let src = "first\r\nsecond\nthird";
+let index = LineIndex::new(src);
+
+let render = |line| {
+    let s = index.line_span(line).unwrap();
+    &src[s.start().to_usize()..s.end().to_usize()]
+};
+assert_eq!(render(1), "first");  // CRLF terminator trimmed
+assert_eq!(render(2), "second"); // LF terminator trimmed
+assert_eq!(render(3), "third");  // final unterminated line
+
+assert_eq!(index.line_span(0), None);
+assert_eq!(index.line_span(99), None);
 ```
 
 <hr>

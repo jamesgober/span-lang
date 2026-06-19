@@ -3,7 +3,7 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::{BytePos, LineCol};
+use crate::{BytePos, LineCol, Span};
 
 /// An index over a single source string that maps byte offsets to line/column
 /// coordinates and back.
@@ -23,7 +23,9 @@ use crate::{BytePos, LineCol};
 /// A line begins immediately after each `\n`. A `\r\n` sequence is therefore one
 /// line break, not two — the `\r` is the final character of the preceding line.
 /// A source with no trailing newline ends with a final line that has no
-/// terminator, and the empty string is one empty line.
+/// terminator, and the empty string is one empty line. A lone `\r` not followed
+/// by `\n` is an ordinary character, not a line break, matching how language
+/// front-ends split source.
 ///
 /// # Examples
 ///
@@ -213,6 +215,57 @@ impl<'src> LineIndex<'src> {
         }
         Some(BytePos::new(offset as u32))
     }
+
+    /// Returns the byte span of a 1-based line's text, excluding its terminator.
+    ///
+    /// The span slices the source to exactly the line's content: the trailing
+    /// `\n` — and a `\r` immediately before it, for a `\r\n` ending — is not
+    /// included, so `&src[start..end]` is the text a diagnostic would underline.
+    /// This is the lookup a renderer uses to print the offending line. Returns
+    /// `None` if `line` is `0` or past the last line.
+    ///
+    /// The line's start is found in `O(log lines)`; trimming the terminator
+    /// inspects at most two bytes, so the whole operation is allocation-free and
+    /// never re-scans the source.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use span_lang::LineIndex;
+    ///
+    /// let src = "first\r\nsecond\nthird";
+    /// let index = LineIndex::new(src);
+    ///
+    /// let line2 = index.line_span(2).expect("line 2 exists");
+    /// assert_eq!(&src[line2.start().to_usize()..line2.end().to_usize()], "second");
+    ///
+    /// // The final, unterminated line is covered too.
+    /// let line3 = index.line_span(3).expect("line 3 exists");
+    /// assert_eq!(&src[line3.start().to_usize()..line3.end().to_usize()], "third");
+    ///
+    /// assert_eq!(index.line_span(0), None);
+    /// assert_eq!(index.line_span(99), None);
+    /// ```
+    #[must_use]
+    pub fn line_span(&self, line: u32) -> Option<Span> {
+        let line_idx = line.checked_sub(1)? as usize;
+        let start = *self.line_starts.get(line_idx)? as usize;
+        let mut end = self
+            .line_starts
+            .get(line_idx + 1)
+            .map_or(self.src.len(), |&next| next as usize);
+
+        // Exclude the terminator: a trailing `\n`, and a `\r` directly before it.
+        let bytes = self.src.as_bytes();
+        if end > start && bytes[end - 1] == b'\n' {
+            end -= 1;
+            if end > start && bytes[end - 1] == b'\r' {
+                end -= 1;
+            }
+        }
+
+        Some(Span::new(start as u32, end as u32))
+    }
 }
 
 #[cfg(test)]
@@ -331,5 +384,67 @@ mod tests {
         let src = String::from("a\nb\nc\n");
         let index = LineIndex::new(&src);
         assert_eq!(index.line_count(), 4);
+    }
+
+    #[test]
+    fn test_lone_cr_is_not_a_line_break() {
+        let index = LineIndex::new("a\rb");
+        assert_eq!(index.line_count(), 1);
+        // The '\r' is an ordinary character, so 'b' is column 3.
+        assert_eq!(index.line_col(BytePos::new(2)), LineCol::new(1, 3));
+    }
+
+    #[test]
+    fn test_consecutive_newlines_are_separate_empty_lines() {
+        let index = LineIndex::new("\n\n\n");
+        assert_eq!(index.line_count(), 4);
+        assert_eq!(index.line_col(BytePos::new(1)), LineCol::new(2, 1));
+        assert_eq!(index.line_col(BytePos::new(2)), LineCol::new(3, 1));
+    }
+
+    #[test]
+    fn test_only_newline_is_two_lines() {
+        let index = LineIndex::new("\n");
+        assert_eq!(index.line_count(), 2);
+        assert_eq!(index.offset(LineCol::new(2, 1)), Some(BytePos::new(1)));
+    }
+
+    #[test]
+    fn test_line_span_excludes_lf_and_crlf_terminators() {
+        let src = "first\r\nsecond\nthird";
+        let index = LineIndex::new(src);
+        let text = |span: Span| &src[span.start().to_usize()..span.end().to_usize()];
+        assert_eq!(text(index.line_span(1).unwrap()), "first");
+        assert_eq!(text(index.line_span(2).unwrap()), "second");
+        assert_eq!(text(index.line_span(3).unwrap()), "third");
+    }
+
+    #[test]
+    fn test_line_span_of_trailing_empty_line_is_empty() {
+        let src = "a\n";
+        let index = LineIndex::new(src);
+        let line2 = index.line_span(2).unwrap();
+        assert!(line2.is_empty());
+        assert_eq!(line2.start(), BytePos::new(2));
+    }
+
+    #[test]
+    fn test_line_span_rejects_out_of_range_lines() {
+        let index = LineIndex::new("a\nb");
+        assert_eq!(index.line_span(0), None);
+        assert_eq!(index.line_span(3), None);
+    }
+
+    #[test]
+    fn test_line_span_start_matches_first_column_offset() {
+        let src = "αβ\r\nγ\nδε\n";
+        let index = LineIndex::new(src);
+        for line in 1..=index.line_count() as u32 {
+            let span = index.line_span(line).expect("line in range");
+            assert_eq!(Some(span.start()), index.offset(LineCol::new(line, 1)));
+            // A line's text never contains its terminator.
+            let text = &src[span.start().to_usize()..span.end().to_usize()];
+            assert!(!text.contains('\n'));
+        }
     }
 }
