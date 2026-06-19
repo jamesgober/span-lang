@@ -34,5 +34,10 @@ Initial scaffold and repository bootstrap. No domain logic yet &mdash; this rele
 - `.github/workflows/ci.yml` CI matrix; `deny.toml`, `clippy.toml`, `rustfmt.toml`.
 - `dev/DIRECTIVES.md` and `dev/ROADMAP.md` (committed engineering standards + plan).
 
+### Fixed
+
+- Align the `clippy.toml` MSRV with `Cargo.toml` (`1.87` &rarr; `1.85`); the stale value overrode the manifest and emitted a clippy MSRV-mismatch warning.
+- Correct the `deny.toml` header comment to name `span-lang` rather than the crate it was templated from.
+
 [Unreleased]: https://github.com/jamesgober/span-lang/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/jamesgober/span-lang/releases/tag/v0.1.0
