@@ -21,6 +21,22 @@
 
 ---
 
+## [0.2.0] - 2026-06-18
+
+The correctness foundation: the position and span types, and the UTF-8-correct line/column resolver with its `O(log lines)` line index. Every public item carries rustdoc with a runnable example, and the section-4 invariants are property-tested against a naive reference resolver.
+
+### Added
+
+- `BytePos` &mdash; a 4-byte `Copy` byte offset with `new`, `to_u32`, `to_usize`, `u32` conversions, and `Display`.
+- `Span` &mdash; a packed, half-open `start..end` byte range with `new` (which orders its arguments to uphold `start <= end`), `empty`, `start`, `end`, `len`, `is_empty`, `contains`, an associative and commutative `merge`, total ordering, and `Display`.
+- `LineCol` &mdash; a 1-based line/column coordinate whose column counts Unicode scalar values, with `new` and a `line:col` `Display`.
+- `LineIndex` &mdash; a per-source index mapping `BytePos` &harr; `LineCol` in `O(log lines)` via `line_col` (total, never panicking), `offset` (the checked inverse), and `line_count`; `\n` and `\r\n` are handled uniformly and no lookup allocates.
+- Property tests covering the span invariants and line/column resolution, cross-checked against a naive line-scan reference over multi-byte and CRLF input.
+- Criterion benchmarks for `merge`, index construction, and the forward and inverse lookups.
+- `docs/API.md` documents the full public surface with examples for every item.
+
+---
+
 ## [0.1.0] - 2026-06-18
 
 Initial scaffold and repository bootstrap. No domain logic yet &mdash; this release establishes the structure, tooling, and quality gates the implementation will be built on.
@@ -39,5 +55,6 @@ Initial scaffold and repository bootstrap. No domain logic yet &mdash; this rele
 - Align the `clippy.toml` MSRV with `Cargo.toml` (`1.87` &rarr; `1.85`); the stale value overrode the manifest and emitted a clippy MSRV-mismatch warning.
 - Correct the `deny.toml` header comment to name `span-lang` rather than the crate it was templated from.
 
-[Unreleased]: https://github.com/jamesgober/span-lang/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jamesgober/span-lang/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jamesgober/span-lang/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jamesgober/span-lang/releases/tag/v0.1.0

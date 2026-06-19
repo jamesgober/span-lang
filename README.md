@@ -26,7 +26,7 @@
         <strong>MSRV is 1.85+</strong> (Rust 2024 edition).
     </p>
     <blockquote>
-        <strong>Status: pre-1.0, in active development.</strong> The public API is being designed across the 0.x series and frozen at <code>1.0.0</code>. See <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
+        <strong>Status: pre-1.0, in active development.</strong> The core position, span, and resolution types are implemented and property-tested as of <code>v0.2.0</code>. The public API is additive across the 0.x series and frozen at <code>1.0.0</code>. See <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
     </blockquote>
 </div>
 
@@ -37,14 +37,73 @@
 
 ```toml
 [dependencies]
-span-lang = "0.1"
+span-lang = "0.2"
+```
+
+`no_std` targets disable the default `std` feature; the crate then relies only on `core` and `alloc`:
+
+```toml
+span-lang = { version = "0.2", default-features = false }
+```
+
+<br>
+<hr>
+<br>
+
+## Performance
+
+A `Span` is a `Copy` value (two packed 32-bit offsets, eight bytes), and line/column resolution is a binary search over line starts — `O(log lines)`, never a re-scan of the source. Latest local Criterion means (`cargo bench`, Windows x86_64, Rust stable):
+
+- **`Span::merge`** — ~0.6 ns/op
+- **`LineIndex::offset`** (line/col &rarr; byte) — ~2.5 ns/op
+- **`LineIndex::line_col`** (byte &rarr; line/col) — ~8.7 ns/op
+- **`LineIndex::new`** — ~8.4 µs to index 1 000 lines (the only `O(n)` operation; lookups allocate nothing)
+
+<br>
+<hr>
+<br>
+
+## Features
+
+- **`BytePos`** — a 4-byte `Copy` byte offset; the atom every span is built from.
+- **`Span`** — a half-open `start..end` byte range with `len`, `is_empty`, `contains`, ordering, and an associative, commutative `merge`. The `start <= end` invariant is enforced at construction.
+- **`LineCol`** — a resolved 1-based line/column, where the column counts Unicode scalar values (never bytes, never inside a multi-byte sequence).
+- **`LineIndex`** — built once per source; maps `BytePos` &harr; `LineCol` in `O(log lines)`, handling `\n` and `\r\n` uniformly, with no allocation on the lookup path.
+
+Correctness is held to the [project invariants](./docs/API.md#invariants) by property tests cross-checked against a naive reference resolver over UTF-8 input including multi-byte characters and CRLF.
+
+<br>
+
+## Usage
+
+```rust
+use span_lang::{LineIndex, Span};
+
+let src = "fn main() {\n    work();\n}\n";
+
+// Spans are half-open byte ranges; merge covers both inputs.
+let call = Span::new(16, 22);
+assert_eq!(call.len(), 6);
+
+// Resolve a byte offset to a human (line, column) coordinate.
+let index = LineIndex::new(src);
+let lc = index.line_col(call.start());
+assert_eq!((lc.line, lc.col), (2, 5));
+
+// The mapping is reversible.
+assert_eq!(index.offset(lc), Some(call.start()));
 ```
 
 <br>
 
-## Status
+## API Overview
 
-This is the <code>v0.1.0</code> scaffold: structure, tooling, and quality gates are in place; the implementation lands across the 0.x series per the <a href="./dev/ROADMAP.md"><code>ROADMAP</code></a> and <a href="./docs/API.md"><code>docs/API.md</code></a>.
+For a complete reference with examples, see [`docs/API.md`](./docs/API.md).
+
+- [`BytePos`](./docs/API.md#bytepos) — a byte offset into one source.
+- [`Span`](./docs/API.md#span) — a half-open byte range with `merge`, `contains`, and ordering.
+- [`LineCol`](./docs/API.md#linecol) — a resolved 1-based line/column coordinate.
+- [`LineIndex`](./docs/API.md#lineindex) — byte &harr; line/column resolution in `O(log lines)`.
 
 <hr>
 <br>
