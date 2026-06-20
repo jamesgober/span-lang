@@ -54,8 +54,10 @@ mod index;
 mod line_col;
 mod pos;
 mod span;
+mod spanned;
 
 pub use index::LineIndex;
 pub use line_col::LineCol;
 pub use pos::BytePos;
 pub use span::Span;
+pub use spanned::Spanned;

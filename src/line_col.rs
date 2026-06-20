@@ -26,6 +26,7 @@ use core::fmt;
 /// assert_eq!(lc.col, 5);
 /// assert_eq!(lc.to_string(), "2:5");
 /// ```
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LineCol {
     /// The 1-based line number.

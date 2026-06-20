@@ -18,7 +18,7 @@
 
 > Complete reference for every public item in `span-lang`, with examples.
 >
-> **Status: pre-1.0.** The surface documented here is implemented and tested as of `v0.3.0`. It is additive across the 0.x series and frozen at `1.0.0`; see [`dev/ROADMAP.md`](../dev/ROADMAP.md).
+> **Status: surface frozen (pre-1.0).** Everything documented here is implemented and tested as of `v0.4.0`, and the public surface is now **frozen** — no items will be added or changed before the `1.0.0` stability tag, only documentation, tests, and internal optimisation. See [Stability](#stability) and [`dev/ROADMAP.md`](../dev/ROADMAP.md).
 
 ## Table of Contents
 
@@ -29,8 +29,10 @@
 - [`Span`](#span)
 - [`LineCol`](#linecol)
 - [`LineIndex`](#lineindex)
+- [`Spanned`](#spanned)
 - [Feature flags](#feature-flags)
 - [Invariants](#invariants)
+- [Stability](#stability)
 
 <br>
 
@@ -46,9 +48,11 @@ renderer all share:
 | [`Span`](#span) | 8 bytes | A half-open byte range `start..end`. |
 | [`LineCol`](#linecol) | 8 bytes | A resolved 1-based line/column coordinate. |
 | [`LineIndex`](#lineindex) | borrows source | Maps `BytePos` &harr; `LineCol` in `O(log lines)`. |
+| [`Spanned<T>`](#spanned) | `Span` + `T` | A value paired with the span it came from. |
 
-The first three are `Copy` value types with no heap behaviour. `LineIndex` is the
-one structure built per source; once built, neither lookup direction allocates.
+`BytePos`, `Span`, and `LineCol` are `Copy` value types with no heap behaviour;
+`Spanned<T>` is `Copy` whenever `T` is. `LineIndex` is the one structure built per
+source; once built, neither lookup direction allocates.
 
 It owns positions only — it does not load source text and does not render
 diagnostics. That boundary is what lets every layer above depend on it without
@@ -63,7 +67,7 @@ inheriting I/O or formatting.
 
 ```toml
 [dependencies]
-span-lang = "0.3"
+span-lang = "0.4"
 ```
 
 Or from the terminal:
@@ -77,7 +81,7 @@ default `std` feature is additive; disable it for a `no_std` target:
 
 ```toml
 [dependencies]
-span-lang = { version = "0.3", default-features = false }
+span-lang = { version = "0.4", default-features = false }
 ```
 
 <hr>
@@ -539,14 +543,117 @@ assert_eq!(index.line_span(99), None);
 <a href="#top">&uarr; <b>TOP</b></a>
 <br>
 
+## `Spanned`
+
+A value `T` together with the [`Span`](#span) it was parsed from. This is the
+wrapper a parser puts around every token and AST node so the value carries its
+location without the value type itself knowing about positions. Both fields are
+public; `Spanned<T>` is `Copy` whenever `T` is, and orders by `span` before
+`value`.
+
+Derives: `Clone`, `Copy`, `Debug`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`,
+`Hash`. Implements `Display` (`value @ start..end`) when `T: Display`, and serde
+(behind the feature) when `T` is serialisable.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `span` | [`Span`](#span) | The source span the value was read from. |
+| `value` | `T` | The wrapped value. |
+
+### `Spanned::new`
+
+```rust,ignore
+pub const fn new(span: Span, value: T) -> Spanned<T>
+```
+
+Pairs a value with its span.
+
+```rust
+use span_lang::{Span, Spanned};
+
+let ident = Spanned::new(Span::new(4, 9), "width");
+assert_eq!(ident.value, "width");
+assert_eq!(ident.span, Span::new(4, 9));
+```
+
+### `Spanned::map`
+
+```rust,ignore
+pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Spanned<U>
+```
+
+Applies `f` to the value, keeping the span unchanged — how a parser lifts a raw
+token into a typed node without losing where it came from.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `f` | `FnOnce(T) -> U` | The transform applied to the value. |
+
+```rust
+use span_lang::{Span, Spanned};
+
+let raw = Spanned::new(Span::new(2, 4), "10");
+let parsed = raw.map(|s| s.parse::<u32>().unwrap());
+assert_eq!(parsed.value, 10);
+assert_eq!(parsed.span, Span::new(2, 4)); // span preserved
+```
+
+### `Spanned::as_ref`
+
+```rust,ignore
+pub fn as_ref(&self) -> Spanned<&T>
+```
+
+Borrows the value, yielding a `Spanned<&T>` with the same span — mirroring
+[`Option::as_ref`], so you can inspect or `map` the value without consuming the
+original.
+
+```rust
+use span_lang::{Span, Spanned};
+
+let owned = Spanned::new(Span::new(0, 4), String::from("name"));
+let len = owned.as_ref().map(String::len);
+assert_eq!(len.value, 4);
+assert_eq!(owned.value, "name"); // `owned` still usable
+```
+
+<hr>
+<br>
+<a href="#top">&uarr; <b>TOP</b></a>
+<br>
+
 ## Feature flags
 
 | Feature | Default | Description |
 |---------|---------|-------------|
 | `std` | yes | Use the standard library. With it disabled the crate is `no_std` (it always relies on `alloc`). |
-| `serde` | no | Reserved for serialising the position types; lands in `v0.4.0`. |
+| `serde` | no | Derive `Serialize` / `Deserialize` for `BytePos`, `Span`, `LineCol`, and `Spanned<T>`. |
 
-span-lang has no runtime dependencies.
+span-lang has no runtime dependencies beyond an optional `serde`.
+
+### serde
+
+With the `serde` feature enabled, every position type round-trips through any
+serde format:
+
+- `BytePos` serialises transparently as a bare number.
+- `LineCol` and `Spanned<T>` serialise as structs of their public fields
+  (`Spanned<T>` requires `T: Serialize` / `Deserialize`).
+- `Span` deserialises through [`Span::new`](#spannew), so a span read from an
+  untrusted source upholds the `start <= end` invariant exactly as a constructed
+  one does — an inverted pair on the wire is normalised, never accepted as-is.
+
+```rust,ignore
+use span_lang::{Span, Spanned};
+
+let node = Spanned::new(Span::new(0, 5), String::from("ident"));
+let json = serde_json::to_string(&node).unwrap();
+let back: Spanned<String> = serde_json::from_str(&json).unwrap();
+assert_eq!(back, node);
+```
+
+`LineIndex` is not serialisable: it borrows a source and is rebuilt from text, not
+restored from bytes.
 
 <hr>
 <br>
@@ -567,6 +674,30 @@ tests cross-checked against a naive reference resolver:
   `\n`, and `\r\n`.
 - For every valid byte position, `offset(line_col(pos)) == Some(pos)` — the
   forward and inverse mappings round-trip.
+
+<hr>
+<br>
+<a href="#top">&uarr; <b>TOP</b></a>
+<br>
+
+## Stability
+
+As of `v0.4.0` the public surface above is **frozen**. The four position types and
+their methods, `Spanned<T>`, the `LineIndex` lookups, the `Display` formats, and
+the `serde` representations are complete; the remaining 0.x work and the `1.0.0`
+tag add documentation, tests, and internal optimisation only — no new or changed
+public items.
+
+The SemVer promise from `1.0.0`:
+
+- No public item is removed or changed incompatibly before `2.0.0`. Additions, if
+  any, are new items only.
+- The `serde` wire representations of `BytePos`, `Span`, `LineCol`, and
+  `Spanned<T>` are part of the contract and will not change incompatibly within a
+  major version.
+- `Display` formats (`123`, `4..10`, `2:5`, `value @ 4..10`) are stable.
+
+MSRV is `1.85`; an MSRV increase is treated as a minor change.
 
 <hr>
 <br>

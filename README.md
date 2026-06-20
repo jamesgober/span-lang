@@ -26,7 +26,7 @@
         <strong>MSRV is 1.85+</strong> (Rust 2024 edition).
     </p>
     <blockquote>
-        <strong>Status: pre-1.0, in active development.</strong> The core position, span, and resolution types are implemented and property-tested as of <code>v0.3.0</code>, with the <code>O(log lines)</code> lookup verified by benchmark scaling. The public API is additive across the 0.x series and frozen at <code>1.0.0</code>. See <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
+        <strong>Status: surface frozen (pre-1.0).</strong> The full position, span, resolution, and <code>Spanned&lt;T&gt;</code> surface is implemented and property-tested as of <code>v0.4.0</code>, with the <code>O(log lines)</code> lookup verified by benchmark scaling. The public API is now frozen — only docs, tests, and internal optimisation remain before the <code>1.0.0</code> stability tag. See <a href="./docs/API.md#stability"><code>API.md</code></a> and <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
     </blockquote>
 </div>
 
@@ -37,13 +37,13 @@
 
 ```toml
 [dependencies]
-span-lang = "0.3"
+span-lang = "0.4"
 ```
 
 `no_std` targets disable the default `std` feature; the crate then relies only on `core` and `alloc`:
 
 ```toml
-span-lang = { version = "0.3", default-features = false }
+span-lang = { version = "0.4", default-features = false }
 ```
 
 <br>
@@ -68,9 +68,10 @@ A `Span` is a `Copy` value (two packed 32-bit offsets, eight bytes), and line/co
 - **`BytePos`** — a 4-byte `Copy` byte offset; the atom every span is built from.
 - **`Span`** — a half-open `start..end` byte range with `len`, `is_empty`, `contains`, ordering, and an associative, commutative `merge`. The `start <= end` invariant is enforced at construction.
 - **`LineCol`** — a resolved 1-based line/column, where the column counts Unicode scalar values (never bytes, never inside a multi-byte sequence).
-- **`LineIndex`** — built once per source; maps `BytePos` &harr; `LineCol` in `O(log lines)`, handling `\n` and `\r\n` uniformly, with no allocation on the lookup path.
+- **`LineIndex`** — built once per source; maps `BytePos` &harr; `LineCol` in `O(log lines)`, handling `\n` and `\r\n` uniformly, with no allocation on the lookup path. Also yields a line's text span for rendering.
+- **`Spanned<T>`** — a value paired with the span it came from, so a token or AST node carries its location without the value type knowing about positions.
 
-Correctness is held to the [project invariants](./docs/API.md#invariants) by property tests cross-checked against a naive reference resolver over UTF-8 input including multi-byte characters and CRLF.
+An optional `serde` feature round-trips every position type; `Span` deserialises through its constructor, so a value from an untrusted source cannot violate the `start <= end` invariant. Correctness is held to the [project invariants](./docs/API.md#invariants) by property tests cross-checked against a naive reference resolver over UTF-8 input including multi-byte characters and CRLF.
 
 <br>
 
@@ -104,6 +105,7 @@ For a complete reference with examples, see [`docs/API.md`](./docs/API.md).
 - [`Span`](./docs/API.md#span) — a half-open byte range with `merge`, `contains`, and ordering.
 - [`LineCol`](./docs/API.md#linecol) — a resolved 1-based line/column coordinate.
 - [`LineIndex`](./docs/API.md#lineindex) — byte &harr; line/column resolution in `O(log lines)`, plus per-line text spans.
+- [`Spanned<T>`](./docs/API.md#spanned) — a value paired with its `Span`.
 
 <hr>
 <br>

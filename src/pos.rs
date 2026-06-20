@@ -27,6 +27,8 @@ use core::fmt;
 /// // Ordered, so positions sort and compare naturally.
 /// assert!(BytePos::new(1) < BytePos::new(2));
 /// ```
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct BytePos(u32);

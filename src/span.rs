@@ -223,6 +223,34 @@ impl fmt::Display for Span {
     }
 }
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Span {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("Span", 2)?;
+        state.serialize_field("start", &self.start)?;
+        state.serialize_field("end", &self.end)?;
+        state.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Span {
+    /// Deserialises `{ start, end }` and routes it through [`Span::new`], so a
+    /// span read from an untrusted source upholds the `start <= end` invariant
+    /// exactly as a constructed one does — an inverted pair on the wire is
+    /// normalised, never accepted as-is.
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(serde::Deserialize)]
+        struct Raw {
+            start: u32,
+            end: u32,
+        }
+        let raw = Raw::deserialize(deserializer)?;
+        Ok(Span::new(raw.start, raw.end))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
