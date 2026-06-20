@@ -18,7 +18,7 @@
 
 > Complete reference for every public item in `span-lang`, with examples.
 >
-> **Status: surface frozen (pre-1.0).** Everything documented here is implemented and tested as of `v0.4.0`, and the public surface is now **frozen** — no items will be added or changed before the `1.0.0` stability tag, only documentation, tests, and internal optimisation. See [Stability](#stability) and [`dev/ROADMAP.md`](../dev/ROADMAP.md).
+> **Status: stable.** Everything documented here is implemented, tested, and stable as of `v1.0.0`. The surface is frozen under the SemVer promise: no public item is removed or changed incompatibly before `2.0.0`. See [Stability](#stability).
 
 ## Table of Contents
 
@@ -67,7 +67,7 @@ inheriting I/O or formatting.
 
 ```toml
 [dependencies]
-span-lang = "0.4"
+span-lang = "1"
 ```
 
 Or from the terminal:
@@ -81,7 +81,7 @@ default `std` feature is additive; disable it for a `no_std` target:
 
 ```toml
 [dependencies]
-span-lang = { version = "0.4", default-features = false }
+span-lang = { version = "1", default-features = false }
 ```
 
 <hr>
@@ -682,13 +682,13 @@ tests cross-checked against a naive reference resolver:
 
 ## Stability
 
-As of `v0.4.0` the public surface above is **frozen**. The four position types and
+As of `v1.0.0` the public surface above is **stable**. The four position types and
 their methods, `Spanned<T>`, the `LineIndex` lookups, the `Display` formats, and
-the `serde` representations are complete; the remaining 0.x work and the `1.0.0`
-tag add documentation, tests, and internal optimisation only — no new or changed
-public items.
+the `serde` representations are complete and final; later releases change
+documentation, tests, and internal implementation only — never the public
+contract.
 
-The SemVer promise from `1.0.0`:
+The SemVer promise, in force from `1.0.0`:
 
 - No public item is removed or changed incompatibly before `2.0.0`. Additions, if
   any, are new items only.

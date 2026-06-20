@@ -21,6 +21,17 @@
 
 ---
 
+## [1.0.0] - 2026-06-20
+
+The first stable release. The position, span, resolution, and `Spanned<T>` surface is frozen under a SemVer promise: no public item is removed or changed incompatibly before `2.0.0`. No code changes from `0.4.0` — this release stabilises and documents the existing surface, with the full property-test and benchmark suite verified green on Linux, macOS (CI), and Windows.
+
+### Changed
+
+- Public API marked **stable**. `docs/API.md` carries the stable status and the SemVer promise; the `serde` wire representations and `Display` formats are part of the contract.
+- README and API status updated from "frozen (pre-1.0)" to "stable".
+
+---
+
 ## [0.4.0] - 2026-06-19
 
 `Spanned<T>`, an optional `serde` feature, and the public surface declared frozen ahead of 1.0. Every position type round-trips under serde, and `Span` deserialisation upholds its `start <= end` invariant.
@@ -87,7 +98,8 @@ Initial scaffold and repository bootstrap. No domain logic yet &mdash; this rele
 - Align the `clippy.toml` MSRV with `Cargo.toml` (`1.87` &rarr; `1.85`); the stale value overrode the manifest and emitted a clippy MSRV-mismatch warning.
 - Correct the `deny.toml` header comment to name `span-lang` rather than the crate it was templated from.
 
-[Unreleased]: https://github.com/jamesgober/span-lang/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jamesgober/span-lang/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/jamesgober/span-lang/compare/v0.4.0...v1.0.0
 [0.4.0]: https://github.com/jamesgober/span-lang/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jamesgober/span-lang/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jamesgober/span-lang/compare/v0.1.0...v0.2.0

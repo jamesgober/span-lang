@@ -26,7 +26,7 @@
         <strong>MSRV is 1.85+</strong> (Rust 2024 edition).
     </p>
     <blockquote>
-        <strong>Status: surface frozen (pre-1.0).</strong> The full position, span, resolution, and <code>Spanned&lt;T&gt;</code> surface is implemented and property-tested as of <code>v0.4.0</code>, with the <code>O(log lines)</code> lookup verified by benchmark scaling. The public API is now frozen — only docs, tests, and internal optimisation remain before the <code>1.0.0</code> stability tag. See <a href="./docs/API.md#stability"><code>API.md</code></a> and <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
+        <strong>Status: stable (<code>v1.0.0</code>).</strong> The full position, span, resolution, and <code>Spanned&lt;T&gt;</code> surface is implemented and property-tested, with the <code>O(log lines)</code> lookup verified by benchmark scaling. The public API is frozen under the SemVer promise: no item is removed or changed incompatibly before <code>2.0.0</code>. See <a href="./docs/API.md#stability"><code>API.md</code></a> and <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
     </blockquote>
 </div>
 
@@ -37,13 +37,13 @@
 
 ```toml
 [dependencies]
-span-lang = "0.4"
+span-lang = "1"
 ```
 
 `no_std` targets disable the default `std` feature; the crate then relies only on `core` and `alloc`:
 
 ```toml
-span-lang = { version = "0.4", default-features = false }
+span-lang = { version = "1", default-features = false }
 ```
 
 <br>
