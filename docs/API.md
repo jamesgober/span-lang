@@ -18,7 +18,7 @@
 
 > Complete reference for every public item in `span-lang`, with examples.
 >
-> **Status: stable.** Everything documented here is implemented, tested, and stable as of `v1.0.0`. The surface is frozen under the SemVer promise: no public item is removed or changed incompatibly before `2.0.0`. See [Stability](#stability).
+> **Status: surface frozen.** Everything documented here is implemented and tested. The newest release on crates.io is `0.4.0`, which has this same public API, and every crate in the family depends on `span-lang = "0.4"`. The `v1.0.0` tag in this repository is not on crates.io yet. See [Stability](#stability).
 
 ## Table of Contents
 
@@ -67,7 +67,7 @@ inheriting I/O or formatting.
 
 ```toml
 [dependencies]
-span-lang = "1"
+span-lang = "0.4"
 ```
 
 Or from the terminal:
@@ -81,7 +81,7 @@ default `std` feature is additive; disable it for a `no_std` target:
 
 ```toml
 [dependencies]
-span-lang = { version = "1", default-features = false }
+span-lang = { version = "0.4", default-features = false }
 ```
 
 <hr>
@@ -682,13 +682,14 @@ tests cross-checked against a naive reference resolver:
 
 ## Stability
 
-As of `v1.0.0` the public surface above is **stable**. The four position types and
+The public surface above has been frozen since `v0.4.0`, the current release on
+crates.io; the unpublished `v1.0.0` tag has the same API. The four position types and
 their methods, `Spanned<T>`, the `LineIndex` lookups, the `Display` formats, and
 the `serde` representations are complete and final; later releases change
 documentation, tests, and internal implementation only — never the public
 contract.
 
-The SemVer promise, in force from `1.0.0`:
+The SemVer promise from `1.0.0`:
 
 - No public item is removed or changed incompatibly before `2.0.0`. Additions, if
   any, are new items only.

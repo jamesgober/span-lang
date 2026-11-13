@@ -26,7 +26,7 @@
         <strong>MSRV is 1.85+</strong> (Rust 2024 edition).
     </p>
     <blockquote>
-        <strong>Status: stable (<code>v1.0.0</code>).</strong> The full position, span, resolution, and <code>Spanned&lt;T&gt;</code> surface is implemented and property-tested, with the <code>O(log lines)</code> lookup verified by benchmark scaling. The public API is frozen under the SemVer promise: no item is removed or changed incompatibly before <code>2.0.0</code>. See <a href="./docs/API.md#stability"><code>API.md</code></a> and <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
+        <strong>Status: surface frozen.</strong> The full position, span, resolution, and <code>Spanned&lt;T&gt;</code> surface is implemented and property-tested, with the <code>O(log lines)</code> lookup verified by benchmark scaling. The newest release on crates.io is <code>0.4.0</code>, and every crate in the family depends on <code>span-lang = "0.4"</code>. The <code>v1.0.0</code> tag in this repository has the same public API and is not on crates.io yet. See <a href="./docs/API.md#stability"><code>API.md</code></a> and <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
     </blockquote>
 </div>
 
@@ -37,13 +37,13 @@
 
 ```toml
 [dependencies]
-span-lang = "1"
+span-lang = "0.4"
 ```
 
 `no_std` targets disable the default `std` feature; the crate then relies only on `core` and `alloc`:
 
 ```toml
-span-lang = { version = "1", default-features = false }
+span-lang = { version = "0.4", default-features = false }
 ```
 
 <br>

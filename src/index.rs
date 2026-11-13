@@ -53,9 +53,12 @@ impl<'src> LineIndex<'src> {
     /// Builds an index over `src`.
     ///
     /// This is the only `O(n)` operation in the type; every subsequent lookup is
-    /// sub-linear. `src` must be at most `u32::MAX` bytes — the addressing limit
-    /// of [`BytePos`] — which holds for any single source a language front-end
-    /// loads.
+    /// sub-linear.
+    ///
+    /// A [`BytePos`] is a `u32`, so only the first `u32::MAX` bytes of a source
+    /// are addressable. For a longer `src` the index covers that prefix (cut back
+    /// to a character boundary) and treats it as the whole source: lookups past
+    /// it clamp to its end, exactly as they do past the end of a shorter source.
     ///
     /// # Examples
     ///
@@ -67,6 +70,13 @@ impl<'src> LineIndex<'src> {
     /// ```
     #[must_use]
     pub fn new(src: &'src str) -> Self {
+        // Keep only the addressable prefix, so every offset below fits in `u32`.
+        let mut len = src.len().min(u32::MAX as usize);
+        while !src.is_char_boundary(len) {
+            len -= 1;
+        }
+        let src = &src[..len];
+
         // One line start at offset 0, plus one immediately after every `\n`.
         // Pre-size from a coarse average line length to avoid reallocating as the
         // scan progresses; the exact count is data-dependent.
@@ -74,7 +84,7 @@ impl<'src> LineIndex<'src> {
         line_starts.push(0);
         for (i, &byte) in src.as_bytes().iter().enumerate() {
             if byte == b'\n' {
-                // `i < src.len() <= u32::MAX`, so `i + 1` fits in `u32`.
+                // `i < src.len() <= u32::MAX` (cut above), so `i + 1` fits.
                 line_starts.push(i as u32 + 1);
             }
         }

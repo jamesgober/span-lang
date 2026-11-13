@@ -15,7 +15,19 @@
 
 ### Changed
 
+- The README and `docs/API.md` install snippets say `span-lang = "0.4"`, the
+  newest release on crates.io and the version every crate in the family depends
+  on. They said `"1"`, which does not resolve because 1.0.0 is not published.
+
 ### Fixed
+
+- `LineIndex::new` on a source over 4 GiB. Line starts were stored with
+  `i as u32 + 1`, so a newline at byte `u32::MAX` or later overflowed (a panic
+  in a debug build, a wrapped value in release), the line starts stopped being
+  sorted, and lookups could slice backwards and panic. A `BytePos` can only
+  address the first `u32::MAX` bytes, so the index now covers that prefix (cut
+  back to a character boundary) and treats it as the whole source. Sources up
+  to 4 GiB are indexed exactly as before.
 
 ### Security
 
